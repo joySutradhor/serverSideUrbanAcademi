@@ -1,6 +1,8 @@
-const express = require('express')
+const express = require('express');
 const app = express();
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path') ;
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -10,6 +12,50 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// pdf post method 
+// Set up multer storage
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/images'); // Destination folder where uploaded files will be stored
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Define filename for uploaded file
+    }
+  });
+  
+  // Initialize multer
+  const upload = multer({ storage: storage });
+  
+
+app.post('/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    const fileName = req.file.filename; // Get the filename of the uploaded file
+
+    res.json(fileName);
+});
+
+
+
+// Route for downloading the PDF file
+app.get('/download/:filename', (req, res) => {
+    const fileName = req.params.filename;
+    const filePath = path.join(__dirname, 'uploads/images', fileName);
+    
+    // Send the file as an attachment
+    res.download(filePath, fileName, (err) => {
+        if (err) {
+            console.error('Error downloading file:', err);
+            return res.status(500).json({ message: 'Error downloading file' });
+        }
+    });
+});
+
+
+  
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -35,6 +81,10 @@ async function run() {
         // await client.connect();
         const database = client.db("notice");
         const allNoticeCollection = database.collection("allNotice")
+
+
+        
+       
 
 
         app.get("/allNoticex10", async (req, res) => {
